@@ -114,10 +114,7 @@ def _sgr_state_is_active(state: _SGRState) -> bool:
     :param state: The SGR state to check.
     :returns: True if any attribute differs from default.
     """
-    return (state.bold or state.dim or state.italic or state.underline
-            or state.blink or state.rapid_blink or state.inverse or state.hidden
-            or state.strikethrough or state.double_underline
-            or state.foreground is not None or state.background is not None)
+    pass
 
 
 def _sgr_state_to_sequence(state: _SGRState) -> str:
@@ -127,25 +124,7 @@ def _sgr_state_to_sequence(state: _SGRState) -> str:
     :param state: The SGR state to convert.
     :returns: SGR escape sequence string, or empty string if no attributes set.
     """
-    if not _sgr_state_is_active(state):
-        return ''
-
-    # Map boolean attributes to their SGR codes
-    bool_attrs = [
-        (state.bold, '1'), (state.dim, '2'), (state.italic, '3'),
-        (state.underline, '4'), (state.blink, '5'), (state.rapid_blink, '6'),
-        (state.inverse, '7'), (state.hidden, '8'), (state.strikethrough, '9'),
-        (state.double_underline, '21'),
-    ]
-    params = [code for active, code in bool_attrs if active]
-
-    # Add color params (already formatted as tuples)
-    if state.foreground is not None:
-        params.append(';'.join(str(p) for p in state.foreground))
-    if state.background is not None:
-        params.append(';'.join(str(p) for p in state.background))
-
-    return f'\x1b[{";".join(params)}m'
+    pass
 
 
 def _parse_sgr_params(sequence: str) -> list[int | tuple[int, ...]]:
@@ -160,22 +139,7 @@ def _parse_sgr_params(sequence: str) -> list[int | tuple[int, ...]]:
     :param sequence: SGR escape sequence string.
     :returns: List of integer parameters or tuples for colon-separated colors.
     """
-    match = _SGR_PATTERN.match(sequence)
-    if not match:
-        return []
-    params_str = match.group(1)
-    if not params_str:
-        return [0]  # \x1b[m is equivalent to \x1b[0m
-    result: list[int | tuple[int, ...]] = []
-    for param in params_str.split(';'):
-        if ':' in param:
-            # Colon-separated extended color (ITU T.416 format)
-            # e.g., "38:2::255:0:0" or "38:2:1:255:0:0" (with colorspace)
-            parts = [int(p) if p else 0 for p in param.split(':')]
-            result.append(tuple(parts))
-        else:
-            result.append(int(param) if param else 0)
-    return result
+    pass
 
 
 def _parse_extended_color(
@@ -188,23 +152,7 @@ def _parse_extended_color(
     :param base: Base code (38 for foreground, 48 for background).
     :returns: Color tuple like (38, 5, N) or (38, 2, R, G, B), or None if malformed.
     """
-    try:
-        mode = next(params)
-        if isinstance(mode, tuple):
-            return None  # Unexpected tuple, colon format handled separately
-        if mode == 5:  # 256-color
-            n = next(params)
-            if isinstance(n, tuple):
-                return None
-            return (int(base), 5, n)
-        if mode == 2:  # RGB
-            r, g, b = next(params), next(params), next(params)
-            if isinstance(r, tuple) or isinstance(g, tuple) or isinstance(b, tuple):
-                return None
-            return (int(base), 2, r, g, b)
-    except StopIteration:
-        pass
-    return None
+    pass
 
 
 def _sgr_state_update(state: _SGRState, sequence: str) -> _SGRState:
@@ -217,75 +165,7 @@ def _sgr_state_update(state: _SGRState, sequence: str) -> _SGRState:
     :param sequence: SGR escape sequence string.
     :returns: New SGRState with updates applied.
     """
-    params_list = _parse_sgr_params(sequence)
-    params = iter(params_list)
-    for p in params:
-        # Handle colon-separated extended colors (ITU T.416 format)
-        if isinstance(p, tuple):
-            if len(p) >= 2 and p[0] == _SGR.FG_EXTENDED:
-                # Foreground: (38, 2, [colorspace,] R, G, B) or (38, 5, N)
-                state = state._replace(foreground=p)
-            elif len(p) >= 2 and p[0] == _SGR.BG_EXTENDED:
-                # Background: (48, 2, [colorspace,] R, G, B) or (48, 5, N)
-                state = state._replace(background=p)
-            continue
-        if p == _SGR.RESET:
-            state = _SGR_STATE_DEFAULT
-        # Attribute ON codes
-        elif p == _SGR.BOLD:
-            state = state._replace(bold=True)
-        elif p == _SGR.DIM:
-            state = state._replace(dim=True)
-        elif p == _SGR.ITALIC:
-            state = state._replace(italic=True)
-        elif p == _SGR.UNDERLINE:
-            state = state._replace(underline=True)
-        elif p == _SGR.BLINK:
-            state = state._replace(blink=True)
-        elif p == _SGR.RAPID_BLINK:
-            state = state._replace(rapid_blink=True)
-        elif p == _SGR.INVERSE:
-            state = state._replace(inverse=True)
-        elif p == _SGR.HIDDEN:
-            state = state._replace(hidden=True)
-        elif p == _SGR.STRIKETHROUGH:
-            state = state._replace(strikethrough=True)
-        elif p == _SGR.DOUBLE_UNDERLINE:
-            state = state._replace(double_underline=True)
-        # Attribute OFF codes
-        elif p == _SGR.BOLD_DIM_OFF:
-            state = state._replace(bold=False, dim=False)
-        elif p == _SGR.ITALIC_OFF:
-            state = state._replace(italic=False)
-        elif p == _SGR.UNDERLINE_OFF:
-            state = state._replace(underline=False, double_underline=False)
-        elif p == _SGR.BLINK_OFF:
-            state = state._replace(blink=False, rapid_blink=False)
-        elif p == _SGR.INVERSE_OFF:
-            state = state._replace(inverse=False)
-        elif p == _SGR.HIDDEN_OFF:
-            state = state._replace(hidden=False)
-        elif p == _SGR.STRIKETHROUGH_OFF:
-            state = state._replace(strikethrough=False)
-        # Basic colors (30-37, 40-47 standard; 90-97, 100-107 bright)
-        elif (_SGR.FG_BLACK <= p <= _SGR.FG_WHITE
-              or _SGR.FG_BRIGHT_BLACK <= p <= _SGR.FG_BRIGHT_WHITE):
-            state = state._replace(foreground=(p,))
-        elif (_SGR.BG_BLACK <= p <= _SGR.BG_WHITE
-              or _SGR.BG_BRIGHT_BLACK <= p <= _SGR.BG_BRIGHT_WHITE):
-            state = state._replace(background=(p,))
-        elif p == _SGR.FG_DEFAULT:
-            state = state._replace(foreground=None)
-        elif p == _SGR.BG_DEFAULT:
-            state = state._replace(background=None)
-        # Extended colors (semicolon-separated format)
-        elif p == _SGR.FG_EXTENDED:
-            if color := _parse_extended_color(params, _SGR.FG_EXTENDED):
-                state = state._replace(foreground=color)
-        elif p == _SGR.BG_EXTENDED:
-            if color := _parse_extended_color(params, _SGR.BG_EXTENDED):
-                state = state._replace(background=color)
-    return state
+    pass
 
 
 def propagate_sgr(lines: Sequence[str]) -> list[str]:
@@ -313,26 +193,4 @@ def propagate_sgr(lines: Sequence[str]) -> list[str]:
     color--if we are viewing *only* the line following, we would want the carry over the BLUE color,
     and all lines with sequences should end with terminating reset (``\x1b[0m``).
     """
-    # Fast path: check if any line contains SGR sequences
-    if not any(_SGR_QUICK_CHECK.search(line) for line in lines) or not lines:
-        return list(lines)
-
-    result: list[str] = []
-    state = _SGR_STATE_DEFAULT
-
-    for line in lines:
-        # Prefix with restoration sequence if state is active
-        prefix = _sgr_state_to_sequence(state)
-
-        # Update state by processing all SGR sequences in this line
-        for match in _SGR_PATTERN.finditer(line):
-            state = _sgr_state_update(state, match.group())
-
-        # Build output line
-        output_line = prefix + line if prefix else line
-        if _sgr_state_is_active(state):
-            output_line = output_line + _SGR_RESET
-
-        result.append(output_line)
-
-    return result
+    pass

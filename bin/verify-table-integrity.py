@@ -71,21 +71,7 @@ import logging
 
 def bisearch_pair(ucs, table):
     """A copy of wcwidth._bisearch() but also returns the range of matched values."""
-    lbound = 0
-    ubound = len(table) - 1
-
-    if ucs < table[0][0] or ucs > table[ubound][1]:
-        return (0, None, None)
-    while ubound >= lbound:
-        mid = (lbound + ubound) // 2
-        if ucs > table[mid][1]:
-            lbound = mid + 1
-        elif ucs < table[mid][0]:
-            ubound = mid - 1
-        else:
-            return (1, table[mid][0], table[mid][1])
-
-    return (0, None, None)
+    pass
 
 
 def main(log: logging.Logger):

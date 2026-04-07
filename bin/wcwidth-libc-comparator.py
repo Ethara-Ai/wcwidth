@@ -36,14 +36,11 @@ def is_named(ucs):
 
     :rtype bool
     """
-    try:
-        return bool(unicodedata.name(ucs))
-    except ValueError:
-        return False
+    pass
 
 
 def is_not_combining(ucs):
-    return not unicodedata.combining(ucs)
+    pass
 
 
 def report_ucs_msg(ucs, wcwidth_libc, wcwidth_local):
@@ -58,15 +55,7 @@ def report_ucs_msg(ucs, wcwidth_libc, wcwidth_local):
     :type comb_wc: int
     :rtype: unicode
     """
-    ucp = (ucs.encode('unicode_escape')[2:]
-           .decode('ascii')
-           .upper()
-           .lstrip('0'))
-    url = f"http://codepoints.net/U+{ucp}"
-    name = unicodedata.name(ucs)
-    return (
-        f"libc,ours={wcwidth_libc},{wcwidth_local} "
-        f"[--o{ucs}o--] name={name} val={ord(ucs)} {url} ")
+    pass
 
 
 if sys.maxunicode < 1114111:
@@ -75,9 +64,7 @@ if sys.maxunicode < 1114111:
 
 
 def _is_equal_wcwidth(libc, ucs, unicode_version):
-    w_libc = libc.wcwidth(ucs)
-    w_local = wcwidth.wcwidth(ucs, unicode_version)
-    assert w_libc == w_local, report_ucs_msg(ucs, w_libc, w_local)
+    pass
 
 
 def main(using_locale=('en_US', 'UTF-8',)):
